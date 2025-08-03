@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "module": "commonjs",
+    "outDir": "./dist", // Ensure it outputs to dist folder
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    // "strictPropertyInitialization": false, // -> For null exceptions
+    "types": ["node"],
+  },
+  "include": [
+    "server.ts", // Include only the root server.ts
+    "identity-service/src/**/*",
+    "identity-service/src/types/**/*", // Include identity-service source files
+    "product-service/src/**/*" // Include product-service source files
+, "config", "identity-service/infrastructure/redis/IIdentityRedisService.ts", "identity-service/infrastructure/redis/IdentityRedisService.ts"  ],
+  "exclude": ["node_modules"]
+}
