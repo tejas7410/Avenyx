@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from 'date-fns';
 import { Download, ShoppingBag } from 'lucide-react';
 import { useEffect, useState } from "react";
+import { API_URLS } from "@/config/api";
 
 interface Product {
   name: string;
@@ -49,7 +50,7 @@ export const Invoices = () => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetch(`http://localhost:3004/api/v1/invoice/${userId}`);
+        const response = await fetch(`${API_URLS.invoice}/api/v1/invoice/${userId}`);
 
         if (!response.ok) {
           throw new Error('Failed to fetch invoices');

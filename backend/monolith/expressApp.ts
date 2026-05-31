@@ -1,4 +1,5 @@
 import express, { Application, NextFunction, Request, Response } from "express";
+import path from "path";
 import AuthRouter from "./identity-service/src/routes/AuthRouter";
 import ProductRouter from "./product-service/src/routes/ProductRouter";
 import UserRouter from "./identity-service/src/routes/UserRouter";
@@ -15,6 +16,11 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "public", "images"))
+);
 
 app.get("/", (req: Request, res: Response) => {
   res.send("NewMind AI - Mert Topcu - E-commerce Fullstack Microservice App");

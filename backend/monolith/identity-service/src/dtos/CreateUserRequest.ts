@@ -1,6 +1,6 @@
 // -> Created for taking new user infos from request body in controller
 
-import { IsString, IsEmail, MinLength, MaxLength } from "class-validator";
+import { IsString, IsEmail, MinLength, MaxLength, IsIn } from "class-validator";
 
 export class CreateUserRequest {
   @IsString()
@@ -20,4 +20,8 @@ export class CreateUserRequest {
   @MinLength(6)
   @MaxLength(50)
   password!: string;
+
+  @IsString()
+  @IsIn(["seller", "buyer"])
+  role!: string;
 }

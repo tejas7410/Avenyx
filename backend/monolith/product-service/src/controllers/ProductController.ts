@@ -4,10 +4,8 @@ import { Request, Response } from "express";
 import { CreateProductRequest } from "../dtos/CreateProductRequest";
 import { validate } from "class-validator";
 import { CreateProductDTO } from "../dtos/CreateProductDto";
-import { FilterQuery } from "mongoose";
 import { logger } from "../../../config/logger";
-
-// -> I m managing my controller-service communication with 'ServiceMessage' type I defined in '/types'.
+import { JwtPayload } from "jsonwebtoken";
 
 @injectable()
 export class ProductController {
@@ -15,6 +13,25 @@ export class ProductController {
 
   constructor(@inject("IProductService") productService: IProductService) {
     this._productService = productService;
+  }
+
+  private async verifyProductOwnership(
+    productId: string,
+    sellerId: string,
+    res: Response
+  ) {
+    const existing = await this._productService.getById(productId);
+    if (!existing.IsSucceed || !existing.Data) {
+      res.status(404).json({ message: "Product not found" });
+      return false;
+    }
+
+    if (existing.Data.sellerId && existing.Data.sellerId !== sellerId) {
+      res.status(403).json({ message: "You can only manage your own products" });
+      return false;
+    }
+
+    return true;
   }
 
   // *********** GET: getAll ***********
@@ -50,7 +67,7 @@ export class ProductController {
   // *********** GET: getById ***********
   async getById(req: Request, res: Response) {
     try {
-      const serviceResult = await this._productService.getById(req.params.id);
+      const serviceResult = await this._productService.getById(String(req.params.id));
       if (!serviceResult?.IsSucceed) {
         return res.status(400).json({ message: serviceResult?.Message });
       }
@@ -60,24 +77,59 @@ export class ProductController {
     }
   }
 
+  async getMyProducts(req: Request, res: Response) {
+    try {
+      const sellerId = (req.user as JwtPayload).id;
+      const serviceResult = await this._productService.getBySeller(sellerId);
+
+      if (!serviceResult.IsSucceed) {
+        return res.status(400).json({ message: serviceResult.Message });
+      }
+
+      return res.status(200).json({ products: serviceResult.Data });
+    } catch (error) {
+      return res.status(500).json({ message: "Server-side error", error });
+    }
+  }
+
   // *********** POST: Create ***********
   async create(req: Request, res: Response) {
-    // -> Desctruct from request body
-    const { name, category, description, price, stock, image } = req.body;
-    const imagePath = req.file?.path as string;
+    const sellerId = (req.user as JwtPayload).id;
+    const { name, category, description, price, stock } = req.body;
+    const imagePath = req.file?.path as string | undefined;
 
-    // -> Validation processes with 'class-validator'
+    if (!req.file) {
+      return res.status(400).json({ message: "Product image is required" });
+    }
+
+    const parsedPrice = Number(price);
+    const parsedStock = Number(stock);
+
+    if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
+      return res.status(400).json({ message: "Invalid price value" });
+    }
+
+    if (Number.isNaN(parsedStock) || parsedStock < 0) {
+      return res.status(400).json({ message: "Invalid stock value" });
+    }
+
     const createProductRequest = new CreateProductRequest(
       name,
       category,
       description,
-      price,
-      stock,
-      image
+      parsedPrice,
+      parsedStock,
+      req.file
     );
     const errors = await validate(createProductRequest);
     if (errors.length > 0) {
-      return res.status(400).json({ message: "Validation failed", errors });
+      const messages = errors.flatMap((error) =>
+        error.constraints ? Object.values(error.constraints) : []
+      );
+      return res.status(400).json({
+        message: messages.join(", ") || "Validation failed",
+        errors,
+      });
     }
 
     // -> Creating DTO object from request object above for sending service
@@ -86,9 +138,10 @@ export class ProductController {
         name,
         description,
         category,
-        price,
-        stock,
-        imagePath
+        parsedPrice,
+        parsedStock,
+        imagePath,
+        sellerId
       );
 
       // -> Sending service and getting service result as object I defined in ../../types
@@ -134,8 +187,16 @@ export class ProductController {
   // *********** PUT: Update ***********
   async update(req: Request, res: Response) {
     try {
-      const productId = req.params.id;
+      const productId = String(req.params.id);
+      const sellerId = (req.user as JwtPayload).id;
       const productUpdates = req.body;
+
+      const canManage = await this.verifyProductOwnership(
+        productId,
+        sellerId,
+        res
+      );
+      if (!canManage) return;
 
       const serviceResult = await this._productService.update(
         productId,
@@ -157,9 +218,17 @@ export class ProductController {
   // *********** POST: Delete ***********
   async delete(req: Request, res: Response) {
     try {
-      const productId = req.params.id;
+      const productId = String(req.params.id);
+      const sellerId = (req.user as JwtPayload).id;
 
-      const serviceResult = await this._productService.delete(productId, false); // -> I choiced hard delete is false
+      const canManage = await this.verifyProductOwnership(
+        productId,
+        sellerId,
+        res
+      );
+      if (!canManage) return;
+
+      const serviceResult = await this._productService.delete(productId, false);
 
       if (!serviceResult.IsSucceed) {
         return res.status(400).json({ message: serviceResult.Message });

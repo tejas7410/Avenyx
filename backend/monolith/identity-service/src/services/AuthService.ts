@@ -35,7 +35,7 @@ export class AuthService implements IAuthService {
     createUserDto: CreateUserDTO
   ): Promise<ServiceMessage<{ token: string }>> {
     // ▼ 1-Desctruction DTO and check exist in database or not ▼
-    const { name, surname, email, password } = createUserDto;
+    const { name, surname, email, password, role } = createUserDto;
     const existingUser = await this._authRepository.findByEmail(email);
     if (existingUser) {
       return new ServiceMessage(
@@ -54,53 +54,43 @@ export class AuthService implements IAuthService {
         surname,
         email,
         password: hashedPassword,
-        role: "user",
+        role: role === "seller" ? "seller" : "buyer",
         isDeleted: false,
         deletedAt: null,
         isAvailable: true,
       });
 
+      const newUserData = await this._authRepository.create(newUser);
+
+      if (!newUserData || !newUserData._id) {
+        return new ServiceMessage(false, "Failed to save the user.");
+      }
+
+      const userId = newUserData._id.toString();
+
       try {
-        const newUserData = await this._authRepository.create(newUser);
-
-        if (!newUserData) {
-          throw new Error(
-            "Failed to save the user. AuthRepository returned null."
-          );
-        }
-
-        // -> Publish event in Kafka with PublishEventer
-        try {
-
-          await this._eventPublisher.publishUserEvent({
-            userId: newUserData._id.toString(),
-            isAvailable: true,
-            eventType: "USER_CREATED",
-          });
-        } catch (eventError) {
-          logger.error(
-            `[Error at: AuthService - create - publishUserEvent()] , ${eventError}`
-          );
-        }
-      } catch (error) {
+        await this._eventPublisher.publishUserEvent({
+          userId,
+          isAvailable: true,
+          eventType: "USER_CREATED",
+        });
+      } catch (eventError) {
         logger.error(
-          `[Error at: AuthService - create - publishUserEvent()] , ${error}`
+          `[Error at: AuthService - register - publishUserEvent()] , ${eventError}`
         );
       }
 
-      // -> Helper method I created for generate token
       const token = generateToken(
-        { id: newUser._id, email: newUser.email, role: newUser.role },
+        { id: userId, email: newUserData.email, role: newUserData.role },
         process.env.JWT_SECRET as string,
         "1h"
       );
 
-      // -> This for catching token in redis, 60 min expiry time
-      await this._redisService.setToken(newUser._id.toString(), token, 3600);
+      await this._redisService.setToken(userId, token, 3600);
 
-      return new ServiceMessage(true, "Registration is succesfull...", {
+      return new ServiceMessage(true, "Registration is successful...", {
         token,
-        userId: newUser._id.toString(),
+        userId,
       });
     } catch (error) {
       return new ServiceMessage(
@@ -119,7 +109,7 @@ export class AuthService implements IAuthService {
   ): Promise<ServiceMessage<{ token: string }>> {
     // ▼ 1-Finding user by email and check password ▼
     const user = await this._authRepository.findByEmail(email);
-    if (!user) {
+    if (!user || !user._id) {
       return new ServiceMessage(false, "Invalid mail or password...");
     }
 
@@ -138,18 +128,18 @@ export class AuthService implements IAuthService {
 
     // ▼ 2-Generate a JWT token and return
     try {
+      const userId = user._id.toString();
       const token = generateToken(
-        { id: user._id, email: user.email, role: user.role },
+        { id: userId, email: user.email, role: user.role },
         process.env.JWT_SECRET as string,
         "1h"
       );
 
-      // -> This for catching token in redis, 60 min expiry time
-      await this._redisService.setToken(user._id.toString(), token, 3600);
+      await this._redisService.setToken(userId, token, 3600);
 
-      return new ServiceMessage(true, "Login is succesfull", {
+      return new ServiceMessage(true, "Login is successful", {
         token,
-        userId: user._id,
+        userId,
       });
     } catch (error) {
       return new ServiceMessage(false, `Error during token...${error}`);

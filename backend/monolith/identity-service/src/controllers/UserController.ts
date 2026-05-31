@@ -79,7 +79,7 @@ export class UserController {
    // ************* Valid User Mostly for Basket Microservice Redis *************
   async userValid(req:Request,res:Response){
     
-    const { id } = req.params;
+    const id = String(req.params.id);
 
     try {
       

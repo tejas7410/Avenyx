@@ -1,8 +1,9 @@
-import { Document, ObjectId, Schema, model } from "mongoose";
+import { Schema, model, Types } from "mongoose";
 
 // -> This is the interface for the Product Schema in MongoDB
-export interface Product extends Document {
-  _id: ObjectId;
+export interface Product {
+  _id?: Types.ObjectId;
+  sellerId?: string;
   name: string;
   category: string;
   description: string;
@@ -29,6 +30,7 @@ const staticCategories = [
 
 const productSchema = new Schema<Product>(
   {
+    sellerId: { type: String, required: false, index: true },
     name: { type: String, required: true },
     category: {
       type: String,

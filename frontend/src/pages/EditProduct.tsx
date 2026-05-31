@@ -1,34 +1,46 @@
 // ************* Managing Edit Product Page Here *************
 
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_URLS, apiClient } from "../config/api";
+
+const PRODUCT_CATEGORIES = [
+  "Monitor",
+  "Keyboard",
+  "Mouse",
+  "RAM",
+  "Graphic Card",
+  "Motherboard",
+  "Processor",
+];
 
 const EditProduct = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<any[]>([]);
-
   const [selectedProductId, setSelectedProductId] = useState<string>("");
-
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [product, setProduct] = useState({
     name: "",
-    category: "",
+    category: PRODUCT_CATEGORIES[0],
     description: "",
-    price: 0,
-    stock: 0,
+    price: "",
+    stock: "",
     image: null as File | null,
   });
 
-  // -> In my scenario I m choosing which product will be edited from drop down so fetching products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/products");
-
-        const { products } =response.data;
-        
-        setProducts(products);
-
-      } catch (error) {
-        console.error("Error fetching products:", error);
+        const response = await apiClient.get(
+          `${API_URLS.monolith}/products/seller/me`
+        );
+        setProducts(response.data.products ?? []);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        setError("Failed to load your products");
       }
     };
 
@@ -36,23 +48,22 @@ const EditProduct = () => {
   }, []);
 
   useEffect(() => {
-    // -> Fetch the selected product details when product is selected from the dropdown
     const fetchProduct = async () => {
       if (selectedProductId) {
         try {
-          const response = await axios.get(
-            `http://localhost:3000/products/${selectedProductId}`
+          const response = await apiClient.get(
+            `${API_URLS.monolith}/products/${selectedProductId}`
           );
           setProduct({
             name: response.data.name,
             category: response.data.category,
             description: response.data.description,
-            price: response.data.price,
-            stock: response.data.stock,
+            price: String(response.data.price),
+            stock: String(response.data.stock),
             image: null,
           });
-        } catch (error) {
-          console.error("Error fetching product:", error);
+        } catch (err) {
+          console.error("Error fetching product:", err);
         }
       }
     };
@@ -62,9 +73,13 @@ const EditProduct = () => {
 
   const handleSelectChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setSelectedProductId(e.target.value);
+    setError("");
+    setSuccess("");
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setProduct((prev) => ({ ...prev, [name]: value }));
   };
@@ -75,45 +90,64 @@ const EditProduct = () => {
   };
 
   const handleSubmit = async (e: FormEvent) => {
-    
     e.preventDefault();
+    setError("");
+    setSuccess("");
+    setIsSubmitting(true);
 
-    // -> Init form
     const formData = new FormData();
     formData.append("name", product.name);
     formData.append("category", product.category);
     formData.append("description", product.description);
-    formData.append("price", product.price.toString());
-    formData.append("stock", product.stock.toString());
+    formData.append("price", product.price);
+    formData.append("stock", product.stock);
     if (product.image) {
       formData.append("image", product.image);
     }
 
     try {
-      const response = await axios.put(
-        `http://localhost:3000/products/${selectedProductId}`,
+      await apiClient.put(
+        `${API_URLS.monolith}/products/${selectedProductId}`,
         formData
       );
 
-      console.log("Product updated successfully:", response.data);
-  
-    } catch (error) {
-      console.error("Error updating product:", error);
+      setSuccess("Product updated successfully!");
+      setTimeout(() => navigate("/"), 1500);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || "Failed to update product");
+      } else {
+        setError("Failed to update product");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-semibold mb-6">Edit Product</h2>
+      <h2 className="text-2xl font-semibold mb-2">Edit My Products</h2>
+      <p className="text-gray-600 mb-6 text-sm">
+        You can only edit products that you listed.
+      </p>
 
-      {/* Dropdown to select product */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>
+      )}
+      {success && (
+        <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">
+          {success}
+        </div>
+      )}
+
       <div className="mb-4">
         <label className="block text-gray-700" htmlFor="product-select">
-          Select Product
+          Select Your Product
         </label>
         <select
           id="product-select"
           name="product-select"
+          value={selectedProductId}
           onChange={handleSelectChange}
           className="w-full p-2 border border-gray-300 rounded-md"
         >
@@ -124,9 +158,13 @@ const EditProduct = () => {
             </option>
           ))}
         </select>
+        {products.length === 0 && (
+          <p className="text-sm text-gray-500 mt-2">
+            You have not listed any products yet.
+          </p>
+        )}
       </div>
 
-      {/* Form to edit product details */}
       {selectedProductId && (
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -148,15 +186,20 @@ const EditProduct = () => {
             <label className="block text-gray-700" htmlFor="category">
               Category
             </label>
-            <input
+            <select
               id="category"
               name="category"
-              type="text"
               value={product.category}
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded-md"
               required
-            />
+            >
+              {PRODUCT_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="mb-4">
@@ -182,6 +225,8 @@ const EditProduct = () => {
               id="price"
               name="price"
               type="number"
+              min="0"
+              step="0.01"
               value={product.price}
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded-md"
@@ -197,6 +242,7 @@ const EditProduct = () => {
               id="stock"
               name="stock"
               type="number"
+              min="0"
               value={product.stock}
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded-md"
@@ -206,12 +252,13 @@ const EditProduct = () => {
 
           <div className="mb-4">
             <label className="block text-gray-700" htmlFor="image">
-              Image
+              New Image (optional)
             </label>
             <input
               id="image"
               name="image"
               type="file"
+              accept="image/*"
               onChange={handleFileChange}
               className="w-full p-2 border border-gray-300 rounded-md"
             />
@@ -219,9 +266,10 @@ const EditProduct = () => {
 
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-md"
+            disabled={isSubmitting}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50"
           >
-            Update Product
+            {isSubmitting ? "Updating..." : "Update Product"}
           </button>
         </form>
       )}

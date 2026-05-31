@@ -13,7 +13,7 @@ interface ProductCardProps {
 export const ProductCard = forwardRef<HTMLDivElement, ProductCardProps>(
   ({ product }, ref) => {
     const { addToCart } = useCart();
-    const { userId } = useAuth();
+    const { userId, isBuyer, isAuthenticated, isSeller } = useAuth();
     const [quantity, setQuantity] = useState(1);
     const [cartCount, setCartCount] = useState(0);
     const socket = useWebSocket();
@@ -84,6 +84,9 @@ export const ProductCard = forwardRef<HTMLDivElement, ProductCardProps>(
     
         {/* Fixed height container for consistent alignment */}
         <div className="p-6 flex flex-col flex-grow">
+          <p className="text-xs uppercase tracking-wide text-blue-600 font-medium mb-1">
+            {product.category}
+          </p>
           <h3 className="text-xl font-semibold text-gray-800 mb-2 line-clamp-1">
             {product.name}
           </h3>
@@ -96,34 +99,53 @@ export const ProductCard = forwardRef<HTMLDivElement, ProductCardProps>(
               <span className="text-2xl font-bold text-gray-800">
                 ${product.price}
               </span>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50">
-                  <button
-                    onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                    className="p-2 hover:bg-gray-100 rounded-l-lg transition-colors"
-                  >
-                    <Minus className="h-4 w-4 text-gray-600" />
-                  </button>
-                  <span className="px-4 py-2 font-medium text-gray-700">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={() => setQuantity((prev) => prev + 1)}
-                    className="p-2 hover:bg-gray-100 rounded-r-lg transition-colors"
-                  >
-                    <Plus className="h-4 w-4 text-gray-600" />
-                  </button>
+              {isBuyer && (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50">
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                      className="p-2 hover:bg-gray-100 rounded-l-lg transition-colors"
+                    >
+                      <Minus className="h-4 w-4 text-gray-600" />
+                    </button>
+                    <span className="px-4 py-2 font-medium text-gray-700">
+                      {quantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((prev) => prev + 1)}
+                      className="p-2 hover:bg-gray-100 rounded-r-lg transition-colors"
+                    >
+                      <Plus className="h-4 w-4 text-gray-600" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
-    
-            <button
-              onClick={handleAddToCart}
-              className="w-full py-3 bg-gradient-to-r from-gray-800 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-600 transition-all duration-300 flex items-center justify-center gap-2 font-medium"
-            >
-              <ShoppingCart className="h-5 w-5" />
-              Add to Cart
-            </button>
+
+            {isBuyer && (
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center gap-2 font-medium"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                Add to Cart
+              </button>
+            )}
+
+            {!isAuthenticated && (
+              <p className="text-sm text-center text-gray-500 py-2">
+                Sign in as a buyer to purchase this item
+              </p>
+            )}
+
+            {isSeller && (
+              <p className="text-sm text-center text-gray-500 py-2">
+                Visible to all buyers on the marketplace
+              </p>
+            )}
           </div>
         </div>
       </div>

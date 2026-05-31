@@ -7,6 +7,7 @@ import { container } from "./config/inversify";
 import { UserEventPublisher } from "./identity-service/infrastructure/kafka/UserEventPublisher";
 import { ProductEventPublisher } from "./product-service/infrastructure/kafka/ProductEventPublisher";
 import { logger } from "./config/logger";
+import { ensureUploadDir } from "./product-service/src/helpers/uploadProductImage";
 dotenv.config();
 
 const PORT = process.env.SERVER_PORT || 3000;
@@ -28,6 +29,8 @@ export const StartServer = async () => {
     // -> Connect to the Redis
     redisClient.on("connect", () => console.log("Redis connected"));
     redisClient.on("error", (err) => console.error("Redis error:", err));
+
+    ensureUploadDir();
 
     // -> Starting server
     expressApp.listen(PORT, () => {

@@ -7,7 +7,7 @@ import { ServiceMessage } from "../types/ServiceMessage";
 import { IProductService } from "./IProductService";
 import { CreateProductDTO } from "../dtos/CreateProductDto";
 import { IProductRedisService } from "../../infrastructure/redis/IProductRedisService";
-import cloudinary from "../../../config/cloudinary";
+import { uploadProductImage } from "../helpers/uploadProductImage";
 import { logger } from "../../../config/logger";
 import { ProductEventPublisher } from "../../infrastructure/kafka/ProductEventPublisher";
 import { PaginationResponse } from "../types/PaginationResponse";
@@ -32,7 +32,7 @@ export class ProductService implements IProductService {
   async create(productDto: CreateProductDTO): Promise<ServiceMessage<Product>> {
     // -> Desctruction DTO and check exist in database or not
     // -> In my scenario every product has unique name
-    const { name, description, category, price, stock, imagePath } = productDto;
+    const { name, description, category, price, stock, imagePath, sellerId } = productDto;
 
     const existingProduct = await this._productRepository.findAll({ name });
 
@@ -43,73 +43,58 @@ export class ProductService implements IProductService {
       );
     }
 
-    try {
-      // -> Cloudinary upload which returns public id and url
-      const cloudinaryUpload = await cloudinary.uploader.upload(imagePath, {
-        folder: "products",
-      });
-      if (!cloudinaryUpload) {
-        logger.error(
-          "There is a error in cloudinary upload process in 'Product Service'"
-        );
-      }
+    if (!imagePath) {
+      return new ServiceMessage(false, "Product image is required.");
+    }
 
-      // -> Creating model from DTO and clodinary image infos
+    try {
+      const imageUpload = await uploadProductImage(imagePath);
+
       const newProduct = new Product({
+        sellerId,
         name,
         description,
         category,
         image: {
-          public_id: cloudinaryUpload.public_id,
-          url: cloudinaryUpload.secure_url,
+          public_id: imageUpload.public_id,
+          url: imageUpload.url,
         },
-        price,
-        stock,
+        price: Number(price),
+        stock: Number(stock),
         isDeleted: false,
         deletedAt: null,
       });
 
-      // -> Send to repository for saving new product and publish event in Kafka with PublishEventer
+      const savedProduct = await this._productRepository.create(newProduct);
+
+      if (!savedProduct || !savedProduct._id) {
+        return new ServiceMessage(false, "Error while saving product.");
+      }
+
       try {
-        const savedProduct = await this._productRepository.create(newProduct); // Save to DB
-
-        if (!savedProduct) {
-          return new ServiceMessage(false, "Error while saving product.");
-        }
-
-        // -> Publish event in Kafka with PublishEventer
-        try {
-          await this._eventPublisher.publishProductEvent({
-            productId: savedProduct._id.toString(),
-            name: savedProduct.name,
-            price: savedProduct.price,
-            stock: savedProduct.stock,
-            imageUrl: savedProduct.image.url,
-            eventType: "PRODUCT_CREATED",
-          });
-        } catch (eventError) {
-          logger.error(
-            `[Error at: ProductService - create - publishProductEvent()] , ${eventError}`
-          );
-        }
-      } catch (dbError) {
+        await this._eventPublisher.publishProductEvent({
+          productId: savedProduct._id.toString(),
+          name: savedProduct.name,
+          price: savedProduct.price,
+          stock: savedProduct.stock,
+          imageUrl: savedProduct.image.url,
+          eventType: "PRODUCT_CREATED",
+        });
+      } catch (eventError) {
         logger.error(
-          `[Error at: ProductService - repository.create()] , ${dbError}`
+          `[Error at: ProductService - create - publishProductEvent()] , ${eventError}`
         );
       }
 
-      // -> Cause products changed I need to delete and update redis cache
       try {
-        
         await this._productRedisService.invalidateAllProductCache();
-
         await this._productRedisService.cacheProduct(
-          String(newProduct._id),
-          newProduct
+          savedProduct._id.toString(),
+          savedProduct
         );
       } catch (error) {
         logger.error(
-          "[ProductService - 'create/invalidatecache-cacheproduct'], ",
+          "[ProductService - create/invalidatecache-cacheproduct], ",
           error
         );
       }
@@ -117,14 +102,13 @@ export class ProductService implements IProductService {
       return new ServiceMessage(
         true,
         `Product with name ${name} added successfully.`,
-        newProduct
+        savedProduct
       );
     } catch (error) {
-      logger.error("[ProductService - create");
-      return new ServiceMessage(
-        false,
-        `Error while adding new product: ${error}`
-      );
+      const message =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      logger.error("[ProductService - create]", error);
+      return new ServiceMessage(false, `Error while adding new product: ${message}`);
     }
   }
 
@@ -229,6 +213,20 @@ export class ProductService implements IProductService {
         false,
         `Error fetching product by ID: ${error}`
       );
+    }
+  }
+
+  async getBySeller(sellerId: string): Promise<ServiceMessage<Product[]>> {
+    try {
+      const products = await this._productRepository.findAll(
+        { sellerId, isDeleted: false },
+        { sort: { createdAt: -1 } }
+      );
+
+      return new ServiceMessage(true, "Successful", products);
+    } catch (error) {
+      logger.error("Error in [ProductService - getBySeller]:", error);
+      return new ServiceMessage(false, "Failed to fetch seller products");
     }
   }
 

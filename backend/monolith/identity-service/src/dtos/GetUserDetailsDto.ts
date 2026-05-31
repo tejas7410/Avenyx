@@ -1,15 +1,21 @@
-// -> Created for sending user infos to client - 'user/profile' endpoint.
-
 export class GetUserDetailsDto {
-  id:string
+  id: string;
   name: string;
   surname: string;
   email: string;
+  role: string;
 
-  constructor(id:string,name: string, surname: string, email: string) {
-    this.id=id;
+  constructor(
+    id: string,
+    name: string,
+    surname: string,
+    email: string,
+    role: string
+  ) {
+    this.id = id;
     this.name = name;
     this.surname = surname;
     this.email = email;
+    this.role = role;
   }
 }

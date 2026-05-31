@@ -1,48 +1,41 @@
 // ************* Managing Route Organization Here *************
 
-import { Route, Routes, Navigate } from 'react-router-dom';
-import { useAuth } from "../src/contexts/AuthContext"
+import { Route, Routes, Navigate } from "react-router-dom";
+import {
+  SellerRoute,
+  BuyerRoute,
+  ProtectedRoute,
+} from "./contexts/AuthContext";
 import Product from "./components/Product/main";
 import AddProduct from "./pages/AddProduct";
 import EditProduct from "./pages/EditProduct";
-import { Profile } from './pages/Profile';
-import { Orders } from './pages/Orders';
-import { Invoices } from './pages/Invoices';
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-};
+import { Profile } from "./pages/Profile";
+import { Orders } from "./pages/Orders";
+import { Invoices } from "./pages/Invoices";
 
 const RouterComponent = () => {
   return (
     <Routes>
-     
       <Route path="/" element={<Product />} />
-      
+
       <Route
         path="/add-product"
         element={
-          <ProtectedRoute>
-            <AddProduct/>
-          </ProtectedRoute>
+          <SellerRoute>
+            <AddProduct />
+          </SellerRoute>
         }
       />
       <Route
         path="/edit-product"
         element={
-          <ProtectedRoute>
+          <SellerRoute>
             <EditProduct />
-          </ProtectedRoute>
+          </SellerRoute>
         }
       />
 
-<Route
+      <Route
         path="/profile"
         element={
           <ProtectedRoute>
@@ -51,21 +44,21 @@ const RouterComponent = () => {
         }
       />
 
-<Route
+      <Route
         path="/orders"
         element={
-          <ProtectedRoute>
+          <BuyerRoute>
             <Orders />
-          </ProtectedRoute>
+          </BuyerRoute>
         }
       />
 
-<Route
+      <Route
         path="/invoices"
         element={
-          <ProtectedRoute>
+          <BuyerRoute>
             <Invoices />
-          </ProtectedRoute>
+          </BuyerRoute>
         }
       />
 

@@ -1,6 +1,7 @@
 import { LoadingSpinner } from "@/components/LoadingSpinner/LoadingSpinner";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import { API_URLS } from "../config/api";
 
 const WebSocketContext = createContext<Socket | null>(null);
 
@@ -17,15 +18,15 @@ export const WebSocketProvider = ({
   useEffect(() => {
 
     // -> Connecting to WebSocket server I created in Basket Microservice in backend
-    const newSocket = io("http://localhost:3001");
+    const newSocket = io(API_URLS.basket);
 
     newSocket.on("connect", () => {
-      // console.log("WebSocket connected:", newSocket.id);
       setLoading(false);
     });
 
     newSocket.on("connect_error", (error) => {
-      console.error("WebSocket connection failed:", error); 
+      console.error("WebSocket connection failed:", error);
+      setLoading(false);
     });
 
     // -> Setting newsocket as useState above
@@ -51,8 +52,5 @@ export const WebSocketProvider = ({
 // -> Exporting for using at /contexts/CartContext.tsx for now
 export const useWebSocket = () => {
   const context = useContext(WebSocketContext);
-  if (context === null) {
-    throw new Error("[useWebSocket - WebSocketContext] context null");
-  }
   return context;
 };

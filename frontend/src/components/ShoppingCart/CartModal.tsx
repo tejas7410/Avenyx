@@ -13,11 +13,12 @@ interface CartModalProps {
 }
 
 export const CartModal = ({ isOpen, onClose, basketData }: CartModalProps) => {
-  if (!isOpen) return null;
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const { deleteFromCart, deleteAllFromCart } = useCart();
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+
+  if (!isOpen) return null;
 
   const handleDelete = async (productId: string) => {
     setIsDeleting(productId);

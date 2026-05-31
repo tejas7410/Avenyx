@@ -33,8 +33,8 @@ export class AuthController {
     }
 
     // ▼ 3-Map the validated request to a DTO (for service) ▼
-    const { name, surname, password, email } = createUserRequest;
-    const createUserDTO = new CreateUserDTO(name, surname, password, email);
+    const { name, surname, password, email, role } = createUserRequest;
+    const createUserDTO = new CreateUserDTO(name, surname, password, email, role);
 
     // ▼ 4-Calling service and sending DTO ▼
     try {
@@ -43,15 +43,19 @@ export class AuthController {
         return res.status(400).json({ message: serviceResult.Message });
       }
 
-      const token = serviceResult.Data; // -> Returning token as data in my scenario data is generic and in that case token
-      res.cookie("auth_token", token, {
+      const authData = serviceResult.Data;
+      if (!authData) {
+        return res.status(500).json({ message: "Authentication data missing" });
+      }
+
+      res.cookie("auth_token", authData.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
       });
 
       return res.status(200).json({
         message: serviceResult.Message,
-        data: token, // -> Include the token in the response body to client as well
+        data: authData,
       });
 
     } catch (error) {
@@ -72,11 +76,14 @@ export class AuthController {
         return res.status(400).json({ message: serviceResult.Message });
       }
 
-      const token = serviceResult.Data; // -> Returning token as data in my scenario data is generic and in that case token
+      const authData = serviceResult.Data;
+      if (!authData) {
+        return res.status(500).json({ message: "Authentication data missing" });
+      }
 
       return res.status(200).json({
         message: serviceResult.Message,
-        token: token, // -> Include the token in the response body to client as well
+        data: authData,
       });
 
     } catch (error) {

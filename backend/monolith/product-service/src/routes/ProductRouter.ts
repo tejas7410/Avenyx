@@ -4,13 +4,13 @@ import { ProductController } from "../controllers/ProductController";
 import { Request, Response } from "express";
 import { asyncHandler } from "../middlewares/asyncHandler";
 import { upload } from "../middlewares/multerMiddleware";
+import { authenticateToken } from "../../../identity-service/src/middlewares/authMiddleware";
+import { requireRole } from "../../../identity-service/src/middlewares/roleMiddleware";
 
 const ProductRouter = Router();
 
 const productController = container.get(ProductController);
-;
 
-// -> Get all products
 ProductRouter.get(
   "/",
   asyncHandler(async (req: Request, res: Response) => {
@@ -18,7 +18,15 @@ ProductRouter.get(
   })
 );
 
-// -> Get product by ID
+ProductRouter.get(
+  "/seller/me",
+  authenticateToken,
+  requireRole("seller"),
+  asyncHandler(async (req: Request, res: Response) => {
+    await productController.getMyProducts(req, res);
+  })
+);
+
 ProductRouter.get(
   "/:id",
   asyncHandler(async (req: Request, res: Response) => {
@@ -26,25 +34,29 @@ ProductRouter.get(
   })
 );
 
-// -> Create a new product
 ProductRouter.post(
-  "/",upload.single("image"),
+  "/",
+  authenticateToken,
+  requireRole("seller"),
+  upload.single("image"),
   asyncHandler(async (req: Request, res: Response) => {
     await productController.create(req, res);
   })
 );
 
-// -> Update an existing product
 ProductRouter.put(
   "/:id",
+  authenticateToken,
+  requireRole("seller"),
   asyncHandler(async (req: Request, res: Response) => {
     await productController.update(req, res);
   })
 );
 
-// -> Delete a product
 ProductRouter.delete(
   "/:id",
+  authenticateToken,
+  requireRole("seller"),
   asyncHandler(async (req: Request, res: Response) => {
     await productController.delete(req, res);
   })

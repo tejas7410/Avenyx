@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useCart } from "../../contexts/CartContext";
 import { BasketResponse } from "../../types/cart";
 import { toast } from 'react-toastify';
 import { X } from "lucide-react";
+import { API_URLS } from "../../config/api";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -24,7 +26,8 @@ export const CheckoutModal = ({
   onClose,
   basketData,
 }: CheckoutModalProps) => {
-  const { userId } = useAuth();
+  const { userId, isAuthenticated } = useAuth();
+  const { deleteAllFromCart } = useCart();
   const [paymentData, setPaymentData] = useState<PaymentFormData>({
     cardNumber: "",
     expiryDate: "",
@@ -65,6 +68,12 @@ export const CheckoutModal = ({
     setError("");
     setIsSubmitting(true);
 
+    if (!isAuthenticated || !userId) {
+      setError("Please log in to complete checkout");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       
       const orderData = {
@@ -80,7 +89,7 @@ export const CheckoutModal = ({
       };
 
       // -> Send payment and order data to the payment service, if payment is ok service will produce event to the order and invoice service
-      const response = await fetch("http://localhost:3002/api/v1/payment", {
+      const response = await fetch(`${API_URLS.payment}/api/v1/payment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,7 +102,7 @@ export const CheckoutModal = ({
       }
 
       toast.success("Payment processed successfully!");
-
+      await deleteAllFromCart();
       onClose();
     
     } catch (err) {

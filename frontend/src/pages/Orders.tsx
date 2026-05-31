@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { API_URLS } from "@/config/api";
 
 interface Product {
   productName: string;
@@ -52,7 +53,7 @@ export const Orders = () => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetch(`http://localhost:3003/api/v1/order/${userId}`);
+        const response = await fetch(`${API_URLS.order}/api/v1/order/${userId}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch orders');

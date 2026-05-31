@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useWebSocket } from "./WebSocketContext";
 import { BasketItem, BasketResponse } from "../types/cart";
+import { API_URLS } from "../config/api";
 
 // -> Interfaces
 interface CartContextType {
@@ -32,7 +33,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchBasket = async () => {
     if (!userId) return;
     try {
-      const response = await fetch(`http://localhost:3001/basket/${userId}`);
+      const response = await fetch(`${API_URLS.basket}/basket/${userId}`);
       if (!response.ok) throw new Error("Failed to fetch basket");
       const data = await response.json();
       setBasketData(data);
@@ -60,7 +61,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   // -> With click add to cart operations
   const addToCart = async (productId: string, quantity: number) => {
     try {
-      const response = await fetch("http://localhost:3001/basket", {
+      const response = await fetch(`${API_URLS.basket}/basket`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, productId, quantity, action: "add" }),
@@ -74,7 +75,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   const deleteFromCart = async (productId: string) => {
     try {
-      const response = await fetch("http://localhost:3001/basket/delete/item", {
+      const response = await fetch(`${API_URLS.basket}/basket/delete/item`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -93,7 +94,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   const deleteAllFromCart = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/basket/${userId}`, {
+      const response = await fetch(`${API_URLS.basket}/basket/${userId}`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Failed to delete all items");

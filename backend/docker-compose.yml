@@ -1,6 +1,6 @@
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.5.3
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -16,7 +16,7 @@ services:
       - app_network
 
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.5.3
     container_name: kafka
     depends_on:
       - zookeeper
@@ -53,6 +53,21 @@ services:
     networks:
       - app_network
 
+  mongo:
+    image: mongo:7
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
   # elasticsearch:
   #   image: bitnami/elasticsearch:latest
   #   environment:
@@ -74,16 +89,29 @@ services:
       dockerfile: Dockerfile
     container_name: monolith
     ports:
-      - "3000:3000"  
+      - "3000:3000"
+    env_file:
+      - .env
     environment:
+      - SERVER_PORT=3000
+      - MONGO_URI=mongodb://mongo:27017/avenyx
       - KAFKA_BROKERS=kafka:29092
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-me}
+      - CLOUDINARY_NAME=${CLOUDINARY_NAME:-}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
+      - NODE_ENV=${NODE_ENV:-development}
       # - ELASTICSEARCH_URL=http://elasticsearch:9200
     depends_on:
-      - kafka
+      mongo:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
       # - elasticsearch
-      - redis
     networks:
       - app_network
 
@@ -112,11 +140,16 @@ services:
       dockerfile: Dockerfile
     container_name: payment-service
     ports:
-      - "3002:3002"  
+      - "3002:3002"
     environment:
+      - SERVER_PORT=3002
+      - MONGO_URI=mongodb://mongo:27017/avenyx
       - KAFKA_BROKERS=kafka:29092
     depends_on:
-      - kafka
+      mongo:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     networks:
       - app_network
 
@@ -127,11 +160,16 @@ services:
       dockerfile: Dockerfile
     container_name: order-service
     ports:
-      - "3003:3003" 
+      - "3003:3003"
     environment:
-      - KAFKA_BROKERS=kafka:29092 
+      - SERVER_PORT=3003
+      - MONGO_URI=mongodb://mongo:27017/avenyx
+      - KAFKA_BROKERS=kafka:29092
     depends_on:
-      - kafka
+      mongo:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     networks:
       - app_network
 
@@ -142,11 +180,16 @@ services:
       dockerfile: Dockerfile
     container_name: invoice-service
     ports:
-      - "3004:3004" 
+      - "3004:3004"
     environment:
+      - SERVER_PORT=3004
+      - MONGO_URI=mongodb://mongo:27017/avenyx
       - KAFKA_BROKERS=kafka:29092
     depends_on:
-      - kafka
+      mongo:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     networks:
       - app_network
 
@@ -155,6 +198,7 @@ services:
 
 volumes:
   redis_data: {}
+  mongo_data: {}
 
 networks:
   app_network:

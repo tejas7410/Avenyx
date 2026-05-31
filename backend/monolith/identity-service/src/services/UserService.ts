@@ -29,13 +29,16 @@ export class UserService implements IUserService {
       return new ServiceMessage(false, "No user found...");
     }
 
-    const { _id, name, surname, email } = user;
+    const { _id, name, surname, email, role } = user;
+
+    const normalizedRole = role === "user" ? "buyer" : role;
 
     const userDetails = new GetUserDetailsDto(
       _id.toString(),
       name,
       surname,
-      email
+      email,
+      normalizedRole
     );
 
     return new ServiceMessage(true, "Succesful", userDetails);

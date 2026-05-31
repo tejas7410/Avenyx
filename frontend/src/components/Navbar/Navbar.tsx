@@ -1,6 +1,6 @@
 // ********* Navbar Operations here (My Account, Shopping Cart Count etc.) - I will make more modular here later *********
 
-import { ShoppingCart, LogIn, UserPlus, LogOut, User } from "lucide-react";
+import { ShoppingCart, LogIn, UserPlus, LogOut, User, Plus, Edit } from "lucide-react";
 import { useCart } from "../../contexts/CartContext";
 import { useEffect, useState } from "react";
 import { CartModal } from "../ShoppingCart/CartModal";
@@ -11,7 +11,7 @@ import { AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export const Navbar = () => {
   const logoUrl = "https://i.ibb.co/KsgRyvK/Ekran-g-r-nt-s-2024-12-20-222513-removebg-preview.png";
-  const { userId, user, logout } = useAuth();
+  const { userId, user, logout, isBuyer, isSeller } = useAuth();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
@@ -21,13 +21,13 @@ export const Navbar = () => {
   const { basketData, getTotalItems, fetchBasket } = useCart();
 
   useEffect(() => {
-    if (userId) {
+    if (userId && isBuyer) {
       fetchBasket();
       setShowWelcome(true);
       const timer = setTimeout(() => setShowWelcome(false), 4000);
       return () => clearTimeout(timer);
     }
-  }, [userId]);
+  }, [userId, isBuyer]);
 
   return (
     <>
@@ -65,6 +65,9 @@ export const Navbar = () => {
                         <div className="px-4 py-3 border-b border-gray-100">
                           <p className="text-sm font-semibold text-gray-900">Welcome</p>
                           <p className="text-sm text-gray-500">{user?.email}</p>
+                          <p className="text-xs text-blue-600 capitalize mt-1">
+                            {isSeller ? "Seller account" : "Buyer account"}
+                          </p>
                         </div>
                         <div className="py-2">
                           <Link
@@ -74,24 +77,46 @@ export const Navbar = () => {
                             <User className="h-5 w-5 mr-3 text-blue-500" />
                             My Profile
                           </Link>
-                          <Link
-                            to="/orders"
-                            className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150"
-                          >
-                            <svg className="h-5 w-5 mr-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                            </svg>
-                            My Orders
-                          </Link>
-                          <Link
-                            to="/invoices"
-                            className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150"
-                          >
-                            <svg className="h-5 w-5 mr-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            My Invoices
-                          </Link>
+                          {isBuyer && (
+                            <>
+                              <Link
+                                to="/orders"
+                                className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150"
+                              >
+                                <svg className="h-5 w-5 mr-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                </svg>
+                                My Orders
+                              </Link>
+                              <Link
+                                to="/invoices"
+                                className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150"
+                              >
+                                <svg className="h-5 w-5 mr-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                My Invoices
+                              </Link>
+                            </>
+                          )}
+                          {isSeller && (
+                            <>
+                              <Link
+                                to="/add-product"
+                                className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150"
+                              >
+                                <Plus className="h-5 w-5 mr-3 text-blue-500" />
+                                Add Product
+                              </Link>
+                              <Link
+                                to="/edit-product"
+                                className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150"
+                              >
+                                <Edit className="h-5 w-5 mr-3 text-blue-500" />
+                                Edit My Products
+                              </Link>
+                            </>
+                          )}
                           <div className="border-t border-gray-100 mt-2">
                             <button
                               onClick={logout}
@@ -125,17 +150,19 @@ export const Navbar = () => {
                 </>
               )}
 
-              <button
-                onClick={() => setIsCartOpen(true)}
-                className="relative p-2 text-gray-100 hover:text-white transition-colors duration-200"
-              >
-                <ShoppingCart className="h-6 w-6" />
-                {getTotalItems() > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center font-medium animate-pulse">
-                    {getTotalItems()}
-                  </span>
-                )}
-              </button>
+              {isBuyer && (
+                <button
+                  onClick={() => setIsCartOpen(true)}
+                  className="relative p-2 text-gray-100 hover:text-white transition-colors duration-200"
+                >
+                  <ShoppingCart className="h-6 w-6" />
+                  {getTotalItems() > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center font-medium animate-pulse">
+                      {getTotalItems()}
+                    </span>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -163,8 +190,9 @@ export const Navbar = () => {
               </button>
             </div>
             <AlertDescription className="text-lg">
-              We are glad to see you again! Enjoy your shopping experience with
-              us.
+              {isSeller
+                ? "Your seller account is ready. Start listing products for buyers."
+                : "Welcome back! Browse products and add them to your cart."}
             </AlertDescription>
             <div className="mt-4">
               <button

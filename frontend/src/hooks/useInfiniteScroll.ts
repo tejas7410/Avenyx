@@ -1,7 +1,8 @@
 // ************* I created this hook for infinite scroll logic (dynamic pagination) *************
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Product, ApiResponse } from "../types/main"
+import { Product } from "../types/main"
+import { API_URLS } from "../config/api";
 
 export const useInfiniteScroll = () => {
   
@@ -31,24 +32,38 @@ export const useInfiniteScroll = () => {
   // -> Fetching products from backend with page and limit is 10 here
   const fetchProducts = async () => {
     try {
-
       setLoading(true);
-      
-      const response = await fetch(`http://localhost:3000/products?page=${page}&limit=10`);
-      
-      const data: ApiResponse = await response.json();
- 
-      setProducts(prev => {
-        const newProducts = data.products.filter(product => 
-          !prev.some(existingProduct => existingProduct._id === product._id)
+
+      const response = await fetch(
+        `${API_URLS.monolith}/products?page=${page}&limit=10`
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (page === 1) {
+          setProducts([]);
+        }
+        setHasMore(false);
+        return;
+      }
+
+      const incomingProducts: Product[] = data.products ?? [];
+
+      setProducts((prev) => {
+        const newProducts = incomingProducts.filter(
+          (product) =>
+            !prev.some((existingProduct) => existingProduct._id === product._id)
         );
         return [...prev, ...newProducts];
       });
-      
-      setHasMore(data.pagination.hasMore); 
-      
+
+      setHasMore(data.pagination?.hasMore ?? false);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error("Error fetching products:", error);
+      if (page === 1) {
+        setProducts([]);
+      }
+      setHasMore(false);
     } finally {
       setLoading(false);
     }

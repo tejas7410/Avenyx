@@ -4,90 +4,66 @@ import {
   createContext,
   useState,
   useCallback,
-  useEffect,
   useContext,
   FC,
   ReactNode,
 } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import {
   User,
   LoginCredentials,
   SignupCredentials,
   AuthState,
+  UserRole,
+  isSeller,
+  isBuyer,
 } from "../types/auth";
 import { storage } from "../utils/storage";
+import { API_URLS } from "../config/api";
+import { authenticateUser, validateUserRole } from "../utils/authApi";
 
 interface AuthContextType extends AuthState {
+  role: UserRole | null;
+  isSeller: boolean;
+  isBuyer: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   signup: (credentials: SignupCredentials) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const BASE_URL = "http://localhost:3000/auth";
+export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  const storedUser = storage.getUser();
 
-export const AuthProvider: FC<{ children: ReactNode }> = ({
-  children,
-}) => {
   const [authState, setAuthState] = useState<AuthState>({
-    user: storage.getUser(),
+    user: storedUser,
     userId: storage.getUserId(),
     token: storage.getToken(),
     isAuthenticated: !!storage.getToken(),
   });
 
-  // -> Update auth state and storage
   const updateAuthState = useCallback((newState: Partial<AuthState>) => {
     setAuthState((prev) => ({
       ...prev,
       ...newState,
     }));
 
-    // -> Update storage based on new state
     if (newState.token) storage.setToken(newState.token);
     if (newState.userId) storage.setUserId(newState.userId);
     if (newState.user) storage.setUser(newState.user);
   }, []);
 
-  // -> Login actions
   const login = async (credentials: LoginCredentials) => {
     try {
-      const response = await fetch(`${BASE_URL}/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed");
-      }
-
-      // -> Get user profile after successful login with  provided token from backend
-      const userResponse = await fetch(
-        `${BASE_URL.replace("/auth", "")}/user/profile`,
-        {
-          headers: {
-            Authorization: `Bearer ${data.token.token}`,
-          },
-        }
-      );
-
-      const userData = await userResponse.json();
-
-      if (!userResponse.ok) {
-        throw new Error("Failed to fetch user data");
-      }
+      const { auth, user } = await authenticateUser("login", credentials);
+      validateUserRole(user, credentials.role);
 
       updateAuthState({
-        user: userData.user_data,
-        userId: data.token.userId,
-        token: data.token.token,
+        user,
+        userId: auth.userId,
+        token: auth.token,
         isAuthenticated: true,
       });
     } catch (error) {
@@ -96,43 +72,14 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({
     }
   };
 
-  // -> Signup actions
   const signup = async (credentials: SignupCredentials) => {
     try {
-      const response = await fetch(`${BASE_URL}/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Signup failed");
-      }
-
-      // -> Get user profile after successful registration with provided token from backend
-      const userResponse = await fetch(
-        `${BASE_URL.replace("/auth", "")}/user/profile`,
-        {
-          headers: {
-            Authorization: `Bearer ${data.data.token}`,
-          },
-        }
-      );
-
-      const userData = await userResponse.json();
-
-      if (!userResponse.ok) {
-        throw new Error("Failed to fetch user data");
-      }
+      const { auth, user } = await authenticateUser("register", credentials);
 
       updateAuthState({
-        user: userData.user_data,
-        userId: data.data.userId,
-        token: data.data.token,
+        user,
+        userId: auth.userId,
+        token: auth.token,
         isAuthenticated: true,
       });
     } catch (error) {
@@ -141,8 +88,22 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({
     }
   };
 
-  // -> Logout actions
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const token = storage.getToken();
+
+    if (token) {
+      try {
+        await fetch(`${API_URLS.monolith}/auth/logout`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } catch {
+        // Clear local session even if backend logout fails
+      }
+    }
+
     storage.clearAuth();
     setAuthState({
       user: null,
@@ -159,15 +120,13 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({
     [updateAuthState]
   );
 
-  // -> Adding authentication header to all requests
-  useEffect(() => {
-    const token = authState.token;
-    if (token) {
-    }
-  }, [authState.token]);
+  const role = authState.user?.role ?? null;
 
   const value = {
     ...authState,
+    role,
+    isSeller: isSeller(role ?? undefined),
+    isBuyer: isBuyer(role ?? undefined),
     login,
     signup,
     logout,
@@ -177,7 +136,6 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// -> Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -186,9 +144,6 @@ export const useAuth = () => {
   return context;
 };
 
-// -> Protected Route component
-import { Navigate, useLocation } from "react-router-dom";
-
 export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -196,7 +151,41 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+export const SellerRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { isAuthenticated, isSeller } = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  if (!isSeller) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+export const BuyerRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { isAuthenticated, isBuyer } = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  if (!isBuyer) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

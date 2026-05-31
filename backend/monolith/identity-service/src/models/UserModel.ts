@@ -1,8 +1,8 @@
-import { Document, ObjectId, Schema, model } from "mongoose";
+import { Schema, model, Types } from "mongoose";
 
 // -> This is interface of User Schema in mongo
-export interface IUser extends Document {
-  _id: ObjectId;
+export interface IUser {
+  _id?: Types.ObjectId;
   name: string;
   surname: string;
   email: string;
@@ -19,7 +19,7 @@ const userSchema = new Schema<IUser>(
     surname: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, required: true, default: "user" },
+    role: { type: String, required: true, enum: ["seller", "buyer"], default: "buyer" },
     isAvailable: { type: Boolean, required: true, default: true },
     isDeleted: { type: Boolean, required: true, default: false },
     deletedAt: {
