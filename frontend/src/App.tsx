@@ -26,7 +26,7 @@ const App = () => {
       <AuthProvider>
         <WebSocketProvider>
           <CartProvider>
-            <div className="min-h-screen flex flex-col bg-gray-50">
+            <div className="dark min-h-screen flex flex-col bg-slate-950 text-slate-100">
               <Navbar />
               <main className="flex-grow container mx-auto px-4 py-8">
                 <RouterComponent />

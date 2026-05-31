@@ -22,6 +22,6 @@ export class CreateUserRequest {
   password!: string;
 
   @IsString()
-  @IsIn(["seller", "buyer"])
+  @IsIn(["seller", "buyer", "admin"])
   role!: string;
 }

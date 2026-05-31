@@ -58,7 +58,7 @@ export const ProductCard = forwardRef<HTMLDivElement, ProductCardProps>(
     return (
       <div
         ref={ref}
-        className="relative bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col"
+        className="relative flex flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-lg shadow-black/20 transition-all duration-300 hover:border-slate-700 hover:shadow-xl"
       >
         {cartCount > 0 && (
           <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg animate-pulse z-10">
@@ -67,7 +67,7 @@ export const ProductCard = forwardRef<HTMLDivElement, ProductCardProps>(
         )}
     
         <div className="relative group px-4 pt-8">
-          <div className="aspect-w-4 aspect-h-3 overflow-hidden rounded-lg">
+          <div className="aspect-w-4 aspect-h-3 overflow-hidden rounded-lg bg-slate-950">
             <img
               src={product.image.url}
               alt={product.name}
@@ -79,45 +79,45 @@ export const ProductCard = forwardRef<HTMLDivElement, ProductCardProps>(
               }}
             />
           </div>
-          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-white bg-opacity-0 transition-opacity duration-300 group-hover:bg-opacity-5" />
         </div>
     
         {/* Fixed height container for consistent alignment */}
         <div className="p-6 flex flex-col flex-grow">
-          <p className="text-xs uppercase tracking-wide text-blue-600 font-medium mb-1">
-            {product.category}
-          </p>
-          <h3 className="text-xl font-semibold text-gray-800 mb-2 line-clamp-1">
+            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-cyan-400">
+              {product.category}
+            </p>
+          <h3 className="mb-2 line-clamp-1 text-xl font-semibold text-white">
             {product.name}
           </h3>
-          <p className="text-gray-600 line-clamp-2 mb-4 text-sm flex-grow">
+          <p className="mb-4 line-clamp-2 flex-grow text-sm text-slate-400">
             {product.description}
           </p>
     
           <div className="flex flex-col space-y-4 mt-auto">
             <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold text-gray-800">
+              <span className="text-2xl font-bold text-slate-100">
                 ${product.price}
               </span>
               {isBuyer && (
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="flex items-center rounded-lg border border-slate-700 bg-slate-950">
                     <button
                       type="button"
                       onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                      className="p-2 hover:bg-gray-100 rounded-l-lg transition-colors"
+                      className="rounded-l-lg p-2 transition-colors hover:bg-slate-800"
                     >
-                      <Minus className="h-4 w-4 text-gray-600" />
+                      <Minus className="h-4 w-4 text-slate-300" />
                     </button>
-                    <span className="px-4 py-2 font-medium text-gray-700">
+                    <span className="px-4 py-2 font-medium text-slate-200">
                       {quantity}
                     </span>
                     <button
                       type="button"
                       onClick={() => setQuantity((prev) => prev + 1)}
-                      className="p-2 hover:bg-gray-100 rounded-r-lg transition-colors"
+                      className="rounded-r-lg p-2 transition-colors hover:bg-slate-800"
                     >
-                      <Plus className="h-4 w-4 text-gray-600" />
+                      <Plus className="h-4 w-4 text-slate-300" />
                     </button>
                   </div>
                 </div>
@@ -128,7 +128,7 @@ export const ProductCard = forwardRef<HTMLDivElement, ProductCardProps>(
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center gap-2 font-medium"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 py-3 font-medium text-slate-950 transition-all duration-300 hover:bg-cyan-400"
               >
                 <ShoppingCart className="h-5 w-5" />
                 Add to Cart
@@ -136,13 +136,13 @@ export const ProductCard = forwardRef<HTMLDivElement, ProductCardProps>(
             )}
 
             {!isAuthenticated && (
-              <p className="text-sm text-center text-gray-500 py-2">
+              <p className="py-2 text-center text-sm text-slate-500">
                 Sign in as a buyer to purchase this item
               </p>
             )}
 
             {isSeller && (
-              <p className="text-sm text-center text-gray-500 py-2">
+              <p className="py-2 text-center text-sm text-slate-500">
                 Visible to all buyers on the marketplace
               </p>
             )}

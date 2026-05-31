@@ -90,6 +90,8 @@ services:
     container_name: monolith
     ports:
       - "3000:3000"
+    volumes:
+      - ./monolith/public/images:/app/public/images
     env_file:
       - .env
     environment:

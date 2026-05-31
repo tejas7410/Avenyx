@@ -54,7 +54,7 @@ export class AuthService implements IAuthService {
         surname,
         email,
         password: hashedPassword,
-        role: role === "seller" ? "seller" : "buyer",
+        role: role === "seller" || role === "admin" ? role : "buyer",
         isDeleted: false,
         deletedAt: null,
         isAvailable: true,

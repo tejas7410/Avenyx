@@ -1,6 +1,6 @@
 // ********* Navbar Operations here (My Account, Shopping Cart Count etc.) - I will make more modular here later *********
 
-import { ShoppingCart, LogIn, UserPlus, LogOut, User, Plus, Edit } from "lucide-react";
+import { BarChart3, ShoppingCart, LogIn, UserPlus, LogOut, User, Plus, Edit } from "lucide-react";
 import { useCart } from "../../contexts/CartContext";
 import { useEffect, useState } from "react";
 import { CartModal } from "../ShoppingCart/CartModal";
@@ -11,7 +11,7 @@ import { AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export const Navbar = () => {
   const logoUrl = "https://i.ibb.co/KsgRyvK/Ekran-g-r-nt-s-2024-12-20-222513-removebg-preview.png";
-  const { userId, user, logout, isBuyer, isSeller } = useAuth();
+  const { userId, user, logout, isBuyer, isSeller, isAdmin } = useAuth();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
@@ -66,7 +66,11 @@ export const Navbar = () => {
                           <p className="text-sm font-semibold text-gray-900">Welcome</p>
                           <p className="text-sm text-gray-500">{user?.email}</p>
                           <p className="text-xs text-blue-600 capitalize mt-1">
-                            {isSeller ? "Seller account" : "Buyer account"}
+                            {isAdmin
+                              ? "Admin account"
+                              : isSeller
+                                ? "Seller account"
+                                : "Buyer account"}
                           </p>
                         </div>
                         <div className="py-2">
@@ -116,6 +120,15 @@ export const Navbar = () => {
                                 Edit My Products
                               </Link>
                             </>
+                          )}
+                          {isAdmin && (
+                            <Link
+                              to="/admin"
+                              className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150"
+                            >
+                              <BarChart3 className="h-5 w-5 mr-3 text-blue-500" />
+                              Admin Dashboard
+                            </Link>
                           )}
                           <div className="border-t border-gray-100 mt-2">
                             <button

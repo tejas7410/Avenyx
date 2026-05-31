@@ -65,3 +65,36 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes category-slide {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.category-slider {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 7%,
+    black 93%,
+    transparent
+  );
+}
+
+.category-track {
+  animation: category-slide 42s linear infinite;
+}
+
+.category-slider:hover .category-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .category-track {
+    animation: none;
+  }
+}

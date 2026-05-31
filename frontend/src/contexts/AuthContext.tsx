@@ -17,6 +17,7 @@ import {
   UserRole,
   isSeller,
   isBuyer,
+  isAdmin,
 } from "../types/auth";
 import { storage } from "../utils/storage";
 import { API_URLS } from "../config/api";
@@ -26,6 +27,7 @@ interface AuthContextType extends AuthState {
   role: UserRole | null;
   isSeller: boolean;
   isBuyer: boolean;
+  isAdmin: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   signup: (credentials: SignupCredentials) => Promise<void>;
   logout: () => Promise<void>;
@@ -127,6 +129,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     role,
     isSeller: isSeller(role ?? undefined),
     isBuyer: isBuyer(role ?? undefined),
+    isAdmin: isAdmin(role ?? undefined),
     login,
     signup,
     logout,
@@ -185,6 +188,23 @@ export const BuyerRoute: React.FC<{ children: React.ReactNode }> = ({
   }
 
   if (!isBuyer) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+export const AdminRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { isAuthenticated, isAdmin } = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  if (!isAdmin) {
     return <Navigate to="/" replace />;
   }
 

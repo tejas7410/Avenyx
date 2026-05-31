@@ -1,6 +1,6 @@
 // ************* Managing Auth Operation Interfaces Here *************
 
-export type UserRole = "seller" | "buyer";
+export type UserRole = "seller" | "buyer" | "admin";
 
 export interface User {
   id: string;
@@ -32,7 +32,8 @@ export interface AuthState {
 }
 
 export const normalizeRole = (role?: string): UserRole =>
-  role === "seller" ? "seller" : "buyer";
+  role === "seller" || role === "admin" ? role : "buyer";
 
 export const isSeller = (role?: string) => normalizeRole(role) === "seller";
 export const isBuyer = (role?: string) => normalizeRole(role) === "buyer";
+export const isAdmin = (role?: string) => normalizeRole(role) === "admin";

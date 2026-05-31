@@ -12,6 +12,24 @@ interface AuthApiResponse {
   errors?: Array<{ constraints?: Record<string, string> }>;
 }
 
+async function readJsonResponse<T>(response: Response): Promise<T> {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new Error("Invalid response from server");
+  }
+}
+
+function handleNetworkError(error: unknown): never {
+  if (error instanceof TypeError) {
+    throw new Error(
+      `Cannot reach the auth server at ${API_URLS.monolith}. Make sure the backend is running.`
+    );
+  }
+
+  throw error;
+}
+
 export function parseAuthError(data: AuthApiResponse, fallback: string): string {
   if (data.errors?.length) {
     const messages = data.errors.flatMap((error) =>
@@ -36,16 +54,28 @@ export function parseAuthResponse(data: AuthApiResponse): AuthResponseData {
 }
 
 export async function fetchUserProfile(token: string): Promise<User> {
-  const response = await fetch(`${API_URLS.monolith}/user/profile`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  let response: Response;
 
-  const profileData = await response.json();
+  try {
+    response = await fetch(`${API_URLS.monolith}/user/profile`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch (error) {
+    handleNetworkError(error);
+  }
+
+  const profileData = await readJsonResponse<{ message?: string; user_data?: User }>(
+    response
+  );
 
   if (!response.ok) {
     throw new Error(profileData.message || "Failed to fetch user profile");
+  }
+
+  if (!profileData.user_data) {
+    throw new Error("Invalid user profile response from server");
   }
 
   return profileData.user_data;
@@ -72,15 +102,21 @@ export async function authenticateUser(
   endpoint: "login" | "register",
   body: LoginCredentials | SignupCredentials
 ): Promise<{ auth: AuthResponseData; user: User }> {
-  const response = await fetch(`${API_URLS.monolith}/auth/${endpoint}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
 
-  const data: AuthApiResponse = await response.json();
+  try {
+    response = await fetch(`${API_URLS.monolith}/auth/${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    handleNetworkError(error);
+  }
+
+  const data = await readJsonResponse<AuthApiResponse>(response);
 
   if (!response.ok) {
     throw new Error(

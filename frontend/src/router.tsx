@@ -5,6 +5,7 @@ import {
   SellerRoute,
   BuyerRoute,
   ProtectedRoute,
+  AdminRoute,
 } from "./contexts/AuthContext";
 import Product from "./components/Product/main";
 import AddProduct from "./pages/AddProduct";
@@ -12,6 +13,7 @@ import EditProduct from "./pages/EditProduct";
 import { Profile } from "./pages/Profile";
 import { Orders } from "./pages/Orders";
 import { Invoices } from "./pages/Invoices";
+import { AdminDashboard } from "./pages/AdminDashboard";
 
 const RouterComponent = () => {
   return (
@@ -32,6 +34,15 @@ const RouterComponent = () => {
           <SellerRoute>
             <EditProduct />
           </SellerRoute>
+        }
+      />
+
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
         }
       />
 

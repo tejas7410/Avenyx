@@ -3,9 +3,11 @@ import { Key } from "react";
 export interface Product {
     _id: Key | null | undefined;
     id: number;
+    sellerId?: string;
     name: string;
     category: string;
     price: number;
+    stock?: number;
     description: string;
     image: {
       public_id: string;

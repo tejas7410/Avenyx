@@ -19,7 +19,7 @@ const userSchema = new Schema<IUser>(
     surname: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, required: true, enum: ["seller", "buyer"], default: "buyer" },
+    role: { type: String, required: true, enum: ["seller", "buyer", "admin"], default: "buyer" },
     isAvailable: { type: Boolean, required: true, default: true },
     isDeleted: { type: Boolean, required: true, default: false },
     deletedAt: {

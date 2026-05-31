@@ -23,22 +23,24 @@ const emptyRegisterForm = {
 const RoleSelector = ({
   role,
   onChange,
+  allowAdmin = false,
 }: {
   role: UserRole;
   onChange: (role: UserRole) => void;
+  allowAdmin?: boolean;
 }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">
+    <label className="mb-2 block text-sm font-medium text-slate-300">
       I am a
     </label>
-    <div className="grid grid-cols-2 gap-3">
+    <div className={`grid ${allowAdmin ? "grid-cols-3" : "grid-cols-2"} gap-3`}>
       <button
         type="button"
         onClick={() => onChange("buyer")}
         className={`px-4 py-3 rounded-md border text-sm font-medium transition-colors ${
           role === "buyer"
             ? "bg-blue-600 text-white border-blue-600"
-            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+            : "bg-slate-950 text-slate-200 border-slate-700 hover:bg-slate-800"
         }`}
       >
         Buyer
@@ -52,7 +54,7 @@ const RoleSelector = ({
         className={`px-4 py-3 rounded-md border text-sm font-medium transition-colors ${
           role === "seller"
             ? "bg-gray-800 text-white border-gray-800"
-            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+            : "bg-slate-950 text-slate-200 border-slate-700 hover:bg-slate-800"
         }`}
       >
         Seller
@@ -60,6 +62,22 @@ const RoleSelector = ({
           List and manage products
         </span>
       </button>
+      {allowAdmin && (
+        <button
+          type="button"
+          onClick={() => onChange("admin")}
+          className={`px-4 py-3 rounded-md border text-sm font-medium transition-colors ${
+            role === "admin"
+              ? "bg-emerald-700 text-white border-emerald-700"
+              : "bg-slate-950 text-slate-200 border-slate-700 hover:bg-slate-800"
+          }`}
+        >
+          Admin
+          <span className="block text-xs font-normal mt-1 opacity-80">
+            Monitor platform
+          </span>
+        </button>
+      )}
     </div>
   </div>
 );
@@ -125,29 +143,33 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg border border-slate-800 bg-slate-900 p-6 text-slate-100 shadow-2xl shadow-black/40">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">
             {type === "login" ? "Login" : "Sign Up"}
           </h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+          <button onClick={onClose} className="rounded p-1 hover:bg-slate-800">
             <X className="h-6 w-6" />
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
+          <div className="mb-4 rounded-md border border-red-900/60 bg-red-950/70 p-3 text-red-200">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <RoleSelector role={role} onChange={setRole} />
+          <RoleSelector
+            role={role}
+            onChange={setRole}
+            allowAdmin={type === "login"}
+          />
 
           {type === "register" && (
             <>
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="name" className="block text-sm font-medium text-slate-300">
                   Name
                 </label>
                 <input
@@ -156,14 +178,14 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
                   name="name"
                   value={(formData as typeof emptyRegisterForm).name}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm"
+                  className="mt-1 block w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 shadow-sm"
                   minLength={2}
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="surname" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="surname" className="block text-sm font-medium text-slate-300">
                   Surname
                 </label>
                 <input
@@ -172,7 +194,7 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
                   name="surname"
                   value={(formData as typeof emptyRegisterForm).surname}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm"
+                  className="mt-1 block w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 shadow-sm"
                   minLength={2}
                   required
                 />
@@ -181,7 +203,7 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="block text-sm font-medium text-slate-300">
               Email
             </label>
             <input
@@ -190,13 +212,13 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm"
+              className="mt-1 block w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 shadow-sm"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-300">
               Password
             </label>
             <input
@@ -205,7 +227,7 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm"
+              className="mt-1 block w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 shadow-sm"
               minLength={6}
               required
             />
@@ -214,7 +236,7 @@ export const AuthModal = ({ isOpen, onClose, type }: AuthModalProps) => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 disabled:opacity-50"
+            className="w-full rounded-md bg-cyan-500 px-4 py-2 font-medium text-slate-950 hover:bg-cyan-400 disabled:opacity-50"
           >
             {isSubmitting
               ? "Please wait..."
